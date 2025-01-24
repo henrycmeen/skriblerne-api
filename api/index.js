@@ -33,6 +33,24 @@ if (!clientPromise) {
 
 export default async function handler(req, res) {
     try {
+        // Add a test endpoint
+        if (req.method === 'GET' && req.url === '/api/test-mongo') {
+            const client = await connectToDatabase();
+            const db = client.db('test');
+            const collection = db.collection('words');
+            
+            // Try to count documents
+            const count = await collection.countDocuments();
+            
+            return res.json({
+                status: 'success',
+                message: 'MongoDB connection successful',
+                documentCount: count,
+                database: 'test',
+                collection: 'words'
+            });
+        }
+
         const client = await clientPromise;
         const db = client.db('test');
         const collection = db.collection('words');
