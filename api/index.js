@@ -32,7 +32,6 @@ async function connectToDatabase() {
     }
     return clientPromise;
 }
-
 export default async function handler(req, res) {
     try {
         const path = req.url.split('?')[0];
