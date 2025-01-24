@@ -26,7 +26,7 @@ async function connectToDatabase() {
 export default async function handler(req, res) {
     try {
         const client = await connectToDatabase();
-        const db = client.db('ordbank');
+        const db = client.db('test');  // Changed from 'ordbank' to 'test'
         const collection = db.collection('words');
 
         // Enable CORS
