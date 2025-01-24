@@ -23,10 +23,18 @@ async function connectToDatabase() {
     return client;
 }
 
+// Global promise for the database connection
+let clientPromise;
+
+// Initialize the connection
+if (!clientPromise) {
+    clientPromise = new MongoClient(process.env.MONGODB_URI).connect();
+}
+
 export default async function handler(req, res) {
     try {
-        const client = await connectToDatabase();
-        const db = client.db('test');  // Changed from 'ordbank' to 'test'
+        const client = await clientPromise;
+        const db = client.db('test');
         const collection = db.collection('words');
 
         // Enable CORS
@@ -38,38 +46,41 @@ export default async function handler(req, res) {
             return res.status(200).end();
         }
 
+        // Add timeout handling
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Operation timed out')), 8000)
+        );
+
         const path = req.url.split('?')[0];
 
-        // Rest of your route handlers remain the same
+        let operationPromise;
         if (req.method === 'GET' && path === '/api/words') {
-            const words = await collection.find().toArray();
-            return res.json(words);
-        }
-
-        if (req.method === 'POST' && path === '/api/word') {
+            operationPromise = collection.find().toArray();
+        } else if (req.method === 'POST' && path === '/api/word') {
             const { word } = req.body;
-            const result = await collection.insertOne({
+            operationPromise = collection.insertOne({
                 word: word.toUpperCase(),
                 date: new Date().toISOString().split('T')[0]
             });
-            return res.json(result);
-        }
-
-        if (req.method === 'GET' && path === '/api/word/today') {
+        } else if (req.method === 'GET' && path === '/api/word/today') {
             const today = new Date().toISOString().split('T')[0];
-            const word = await collection.findOne({ date: today });
-            return res.json(word || { word: 'Ingen ord i dag' });
+            operationPromise = collection.findOne({ date: today });
+        } else if (req.method === 'GET' && path === '/api/word/random') {
+            operationPromise = collection.aggregate([{ $sample: { size: 1 } }]).toArray()
+                .then(results => results[0] || { word: 'Ingen ord funnet' });
+        } else {
+            return res.status(404).json({ error: 'Not found' });
         }
 
-        if (req.method === 'GET' && path === '/api/word/random') {
-            const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
-            return res.json(words[0] || { word: 'Ingen ord funnet' });
-        }
+        const result = await Promise.race([operationPromise, timeoutPromise]);
+        return res.json(result);
 
-        return res.status(404).json({ error: 'Not found' });
     } catch (error) {
         console.error('Error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ 
+            error: error.message,
+            type: error.name,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
-    // Remove client.close() as we're now caching the connection
 }
