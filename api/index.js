@@ -17,14 +17,23 @@ export default async function handler(req, res) {
         const db = client.db('ordbank');
         const collection = db.collection('words');
 
-        // Handle GET /api/words
-        if (req.method === 'GET' && req.url === '/api/words') {
+        // Enable CORS
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+            return res.status(200).end();
+        }
+
+        const path = req.url.split('?')[0];
+
+        if (req.method === 'GET' && path === '/api/words') {
             const words = await collection.find().toArray();
             return res.json(words);
         }
 
-        // Handle POST /api/word
-        if (req.method === 'POST' && req.url === '/api/word') {
+        if (req.method === 'POST' && path === '/api/word') {
             const { word } = req.body;
             const result = await collection.insertOne({
                 word: word.toUpperCase(),
@@ -33,15 +42,13 @@ export default async function handler(req, res) {
             return res.json(result);
         }
 
-        // Handle GET /api/word/today
-        if (req.method === 'GET' && req.url === '/api/word/today') {
+        if (req.method === 'GET' && path === '/api/word/today') {
             const today = new Date().toISOString().split('T')[0];
             const word = await collection.findOne({ date: today });
             return res.json(word || { word: 'Ingen ord i dag' });
         }
 
-        // Handle GET /api/word/random
-        if (req.method === 'GET' && req.url === '/api/word/random') {
+        if (req.method === 'GET' && path === '/api/word/random') {
             const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
             return res.json(words[0] || { word: 'Ingen ord funnet' });
         }
