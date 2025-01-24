@@ -9,11 +9,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new MongoClient(process.env.MONGODB_URI);
+// Create a cached connection variable
+let cachedClient = null;
+
+async function connectToDatabase() {
+    if (cachedClient) {
+        return cachedClient;
+    }
+    
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    cachedClient = client;
+    return client;
+}
 
 export default async function handler(req, res) {
     try {
-        await client.connect();
+        const client = await connectToDatabase();
         const db = client.db('ordbank');
         const collection = db.collection('words');
 
@@ -28,6 +40,7 @@ export default async function handler(req, res) {
 
         const path = req.url.split('?')[0];
 
+        // Rest of your route handlers remain the same
         if (req.method === 'GET' && path === '/api/words') {
             const words = await collection.find().toArray();
             return res.json(words);
@@ -57,7 +70,6 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Error:', error);
         return res.status(500).json({ error: error.message });
-    } finally {
-        await client.close();
     }
+    // Remove client.close() as we're now caching the connection
 }
