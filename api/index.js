@@ -17,8 +17,7 @@ async function connectToDatabase() {
             socketTimeoutMS: 5000,
             ssl: true,
             tls: true,
-            tlsInsecure: true,
-            directConnection: true
+            tlsInsecure: true
         });
     }
 
