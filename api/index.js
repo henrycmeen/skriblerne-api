@@ -1,12 +1,13 @@
 import express from 'express';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Single database connection promise
+// Remove express import as it's not needed for Vercel serverless functions
 let dbPromise = null;
 
 async function connectToDatabase() {
     try {
         if (dbPromise) {
+            console.log('[DEBUG] Using cached connection');
             return dbPromise;
         }
 
@@ -23,16 +24,11 @@ async function connectToDatabase() {
             connectTimeoutMS: 5000
         });
 
-        // Create and store the promise
+        // Store the database promise instead of the client
         dbPromise = client.connect()
             .then(() => {
                 console.log('[DEBUG] Connected to MongoDB');
                 return client.db('test');
-            })
-            .catch(err => {
-                console.error('[DEBUG] Connection failed:', err);
-                dbPromise = null;
-                throw err;
             });
 
         return dbPromise;
@@ -44,42 +40,25 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
-    // Add timeout safety
-    const timeout = setTimeout(() => {
-        if (!res.headersSent) {
-            console.error('[DEBUG] Request timeout');
-            res.status(504).json({ error: 'Gateway Timeout' });
-        }
-    }, 9000); // Set to 9s to ensure we respond before Vercel's 10s limit
-
+    // Remove timeout as Vercel handles this
     try {
-        // CORS headers remain at the top
+        // CORS headers first
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-        // Handle preflight
+
         if (req.method === 'OPTIONS') {
             return res.status(204).end();
         }
-    
-        // Early returns
-        if (req.url.includes('favicon')) {
-            return res.status(204).end();
-        }
-    
+
         const path = req.url.split('?')[0];
         console.log('[DEBUG] Processing request for path:', path);
-    
-        // Non-DB routes first
-        if (path === '/' || path === '') {
-            return res.json({ status: 'API is running' });
-        }
-    
-        if (path === '/health') {
+
+        // Quick health checks
+        if (path === '/health' || path === '/' || path === '') {
             return res.json({ status: 'ok' });
         }
-    
+
         // Database operations
         const db = await connectToDatabase();
         const collection = db.collection('words');
