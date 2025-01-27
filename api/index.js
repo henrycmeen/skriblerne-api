@@ -24,7 +24,9 @@ async function connectToDatabase() {
                 strict: true,
                 deprecationErrors: true,
             },
-            maxPoolSize: 10
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 5000
         });
 
         await client.connect();
@@ -80,9 +82,8 @@ export default async function handler(req, res) {
             return res.json({ status: 'ok' });
         }
 
-        // Database operations with optimized connection
-        const client = await connectToDatabase();
-        const db = client.db('test');
+        // Use destructured db from connection
+        const { db } = await connectToDatabase();
         const collection = db.collection('words');
 
         switch (path) {
@@ -116,8 +117,18 @@ export default async function handler(req, res) {
 
             case '/api/word/today':
                 if (req.method === 'GET') {
+                    console.time('today-word-fetch');
                     const today = new Date().toISOString().split('T')[0];
-                    const word = await collection.findOne({ date: today });
+                    console.log('Fetching word for date:', today);
+                    
+                    const word = await collection.findOne(
+                        { date: today },
+                        { maxTimeMS: 5000 } // Set maximum execution time
+                    );
+                    
+                    console.timeEnd('today-word-fetch');
+                    console.log('Word found:', word ? 'yes' : 'no');
+                    
                     return res.json(word || { word: 'Ingen ord i dag' });
                 }
                 break;
