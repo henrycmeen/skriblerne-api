@@ -16,24 +16,24 @@ async function connectToDatabase() {
             useUnifiedTopology: true,
             tls: true,
             tlsAllowInvalidCertificates: true,
-            serverSelectionTimeoutMS: 5000,  // Lower timeout
-            connectTimeoutMS: 5000,          // Lower timeout
-            socketTimeoutMS: 5000            // Lower timeout
+            serverSelectionTimeoutMS: 8000,    // Increased timeout
+            connectTimeoutMS: 8000,            // Increased timeout
+            socketTimeoutMS: 8000              // Increased timeout
         });
 
-        // Add timeout to the promise
-        dbPromise = Promise.race([
-            client.connect()
-                .then(() => {
-                    console.log('[DEBUG] Connected to MongoDB');
-                    return client.db('test');
-                }),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Connection timeout')), 5000)
-            )
-        ]);
+        // Simpler connection without race condition
+        dbPromise = client.connect()
+            .then(() => {
+                console.log('[DEBUG] Connected to MongoDB');
+                return client.db('test');
+            });
 
-        return dbPromise;
+        const db = await dbPromise;
+        // Test connection
+        await db.command({ ping: 1 });
+        console.log('[DEBUG] Database ping successful');
+        
+        return db;
     } catch (error) {
         console.error('[DEBUG] Connection error:', error);
         dbPromise = null;
