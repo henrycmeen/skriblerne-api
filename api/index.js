@@ -2,97 +2,56 @@ import express from 'express';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
 // Remove express import as it's not needed for Vercel serverless functions
-let dbPromise = null;
+import { MongoClient } from 'mongodb';
+
+// Global cached connection
+let cachedDb = null;
 
 async function connectToDatabase() {
-    try {
-        if (dbPromise) {
-            return dbPromise;
-        }
-
-        console.log('[DEBUG] Creating new MongoDB client...');
-        const client = new MongoClient(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            tls: true,
-            tlsAllowInvalidCertificates: true,
-            serverSelectionTimeoutMS: 8000,    // Increased timeout
-            connectTimeoutMS: 8000,            // Increased timeout
-            socketTimeoutMS: 8000              // Increased timeout
-        });
-
-        // Simpler connection without race condition
-        dbPromise = client.connect()
-            .then(() => {
-                console.log('[DEBUG] Connected to MongoDB');
-                return client.db('test');
-            });
-
-        const db = await dbPromise;
-        // Test connection
-        await db.command({ ping: 1 });
-        console.log('[DEBUG] Database ping successful');
-        
-        return db;
-    } catch (error) {
-        console.error('[DEBUG] Connection error:', error);
-        dbPromise = null;
-        throw error;
+    if (cachedDb) {
+        return cachedDb;
     }
+
+    const client = await MongoClient.connect(process.env.MONGODB_URI);
+    cachedDb = client.db('test');
+    return cachedDb;
 }
 
 export default async function handler(req, res) {
+    if (req.method === 'OPTIONS') {
+        res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
+        res.setHeader('Access-Control-Allow-Methods', 'GET');
+        return res.status(204).end();
+    }
+
     try {
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-        if (req.method === 'OPTIONS') {
-            return res.status(204).end();
-        }
-
+        res.setHeader('Access-Control-Allow-Methods', 'GET');
+        
         const path = req.url.split('?')[0];
-        console.log('[DEBUG] Request path:', path);
-
-        if (path === '/health' || path === '/' || path === '') {
+        
+        // Quick health check without DB connection
+        if (path === '/health') {
             return res.json({ status: 'ok' });
         }
-
+        
         const db = await connectToDatabase();
         const collection = db.collection('words');
 
-        switch (path) {
-            case '/word/today':
-            case '/api/word/today':
-                if (req.method === 'GET') {
-                    const today = new Date().toISOString().split('T')[0];
-                    const word = await collection.findOne(
-                        { date: today },
-                        { 
-                            maxTimeMS: 3000,
-                            projection: { _id: 0, word: 1, date: 1 }
-                        }
-                    );
-                    return res.json(word || { word: 'Ingen ord i dag' });
-                }
-                break;
-
-            case '/word/random':
-            case '/api/word/random':
-                if (req.method === 'GET') {
-                    const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
-                    return res.json(words[0] || { word: 'Ingen ord funnet' });
-                }
-                break;
-
-            default:
-                return res.status(404).json({ error: 'Not found', path: path });
+        if (path.includes('/word/today')) {
+            const today = new Date().toISOString().split('T')[0];
+            const word = await collection.findOne({ date: today });
+            return res.json(word || { word: 'Ingen ord i dag' });
         }
+        
+        if (path.includes('/word/random')) {
+            const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
+            return res.json(words[0] || { word: 'Ingen ord funnet' });
+        }
+
+        return res.status(404).json({ error: 'Not found' });
     } catch (error) {
-        console.error('[DEBUG] Request error:', error);
-        return res.status(500).json({ 
-            error: 'Internal server error',
-            message: error.message
-        });
+        console.error(error);
+        return res.status(500).json({ error: 'Server error' });
     }
 }
