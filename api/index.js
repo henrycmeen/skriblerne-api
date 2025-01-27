@@ -11,9 +11,16 @@ async function connectToDatabase() {
             if (!process.env.MONGODB_URI) {
                 throw new Error('MONGODB_URI is not defined');
             }
-            // Simplified MongoDB connection for SRV compatibility
-            const client = new MongoClient(process.env.MONGODB_URI);
-            clientPromise = client.connect();
+            const client = new MongoClient(process.env.MONGODB_URI, {
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 5000,
+                connectTimeoutMS: 5000
+            });
+            clientPromise = client.connect().catch(err => {
+                console.error('Failed to connect:', err);
+                clientPromise = null;
+                throw err;
+            });
         }
         const client = await clientPromise;
         console.log('MongoDB connection successful');
