@@ -12,14 +12,8 @@ async function connectToDatabase() {
             if (!process.env.MONGODB_URI) {
                 throw new Error('MONGODB_URI is not defined');
             }
-            const client = new MongoClient(process.env.MONGODB_URI, {
-                maxPoolSize: 1,
-                serverSelectionTimeoutMS: 10000,
-                socketTimeoutMS: 10000,
-                connectTimeoutMS: 10000,
-                retryWrites: true,
-                w: 'majority'
-            });
+            // Simplified MongoDB connection for SRV compatibility
+            const client = new MongoClient(process.env.MONGODB_URI);
             clientPromise = client.connect();
         }
         const client = await clientPromise;
@@ -36,17 +30,17 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
+    // Early return for favicon requests
+    if (req.url.includes('favicon')) {
+        return res.status(204).end();
+    }
+
     console.log('Request received:', {
         method: req.method,
         path: req.url
     });
     
     try {
-        // Handle favicon requests
-        if (req.url.includes('favicon')) {
-            return res.status(204).end(); // No content response for favicon
-        }
-
         // Enable CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -58,16 +52,16 @@ export default async function handler(req, res) {
 
         const path = req.url.split('?')[0];
 
-        // Root path handler
+        // Handle non-database routes first
         if (path === '/' || path === '') {
             return res.json({ status: 'API is running' });
         }
 
-        // Health check endpoint
         if (path === '/health') {
             return res.json({ status: 'ok' });
         }
 
+        // Database operations
         const client = await connectToDatabase();
         const db = client.db('test');
         const collection = db.collection('words');
@@ -89,6 +83,9 @@ export default async function handler(req, res) {
 
             case '/api/word':
                 if (req.method === 'POST') {
+                    if (!req.body || !req.body.word) {
+                        return res.status(400).json({ error: 'Word is required' });
+                    }
                     const { word } = req.body;
                     const result = await collection.insertOne({
                         word: word.toUpperCase(),
