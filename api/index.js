@@ -15,7 +15,10 @@ async function connectToDatabase() {
             const client = new MongoClient(process.env.MONGODB_URI, {
                 maxPoolSize: 1,
                 serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 5000
+                socketTimeoutMS: 5000,
+                ssl: true,
+                tls: true,
+                tlsAllowInvalidCertificates: true // For testing only
             });
             clientPromise = client.connect();
         }
@@ -23,7 +26,11 @@ async function connectToDatabase() {
         console.log('MongoDB connection successful');
         return client;
     } catch (error) {
-        console.error('MongoDB connection error:', error);
+        console.error('Detailed MongoDB connection error:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         throw error;
     }
 }
