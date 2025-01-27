@@ -36,25 +36,33 @@ export default async function handler(req, res) {
         const path = req.url.split('?')[0];
         console.log('Incoming request path:', path);
 
-        // Health check without DB
-        if (path === '/api/health') {
-            return res.json({ status: 'ok' });
-        }
-
         // Connect to DB with better error handling
         const db = await connectToDatabase();
         const collection = db.collection('words');
 
-        if (path === '/api/word/today') {  // Updated path
+        // List all words
+        if (path === '/api/words') {
+            const words = await collection.find({}).toArray();
+            return res.json(words);
+        }
+
+        // Get today's word
+        if (path === '/api/word/today') {
             const today = new Date().toISOString().split('T')[0];
             console.log('Searching for date:', today);
             const word = await collection.findOne({ date: today });
             return res.json(word || { word: 'Ingen ord i dag' });
         }
         
-        if (path === '/word/random') {
+        // Get random word
+        if (path === '/api/word/random') {  // Updated path
             const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
             return res.json(words[0] || { word: 'Ingen ord funnet' });
+        }
+
+        // Health check
+        if (path === '/api/health') {
+            return res.json({ status: 'ok' });
         }
 
         return res.status(404).json({ error: 'Not found' });
