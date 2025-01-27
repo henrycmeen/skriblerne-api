@@ -14,14 +14,12 @@ async function connectToDatabase() {
             }
             const client = new MongoClient(process.env.MONGODB_URI, {
                 maxPoolSize: 1,
-                serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 5000,
-                ssl: true,
-                tls: true,
-                tlsCAFile: undefined,
-                tlsAllowInvalidHostnames: true,
-                useNewUrlParser: true,
-                useUnifiedTopology: true
+                serverSelectionTimeoutMS: 10000,
+                socketTimeoutMS: 10000,
+                connectTimeoutMS: 10000,
+                directConnection: true,
+                retryWrites: true,
+                w: 'majority'
             });
             clientPromise = client.connect();
         }
