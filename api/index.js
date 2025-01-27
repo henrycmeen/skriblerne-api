@@ -51,11 +51,10 @@ export default async function handler(req, res) {
             const today = new Date().toISOString().split('T')[0];
             console.log('Searching for date:', today);
             
-            // Add more detailed logging
-            const allWords = await collection.find({}).toArray();
-            console.log('All available dates:', allWords.map(w => w.date));
-            
-            const word = await collection.findOne({ date: "2025-01-27" }); // Hardcode to test
+            // Match date by starting with the date string
+            const word = await collection.findOne({
+                date: new RegExp('^' + today)
+            });
             console.log('Found word:', word);
             
             return res.json(word || { word: 'Ingen ord i dag' });
