@@ -12,9 +12,13 @@ async function connectToDatabase() {
 
     if (!cachedClient) {
         cachedClient = new MongoClient(process.env.MONGODB_URI, {
-            maxPoolSize: 1, // Limit connections for serverless
-            serverSelectionTimeoutMS: 5000, // 5 seconds
-            socketTimeoutMS: 5000
+            maxPoolSize: 1,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 5000,
+            ssl: true,
+            tls: true,
+            tlsAllowInvalidCertificates: true,
+            useNewUrlParser: true
         });
     }
 
@@ -29,7 +33,6 @@ async function connectToDatabase() {
         return cachedDb;
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        // Reset cache on error
         cachedClient = null;
         cachedDb = null;
         throw error;
