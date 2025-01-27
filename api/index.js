@@ -9,20 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Create a cached connection variable
-let cachedClient = null;
-
-async function connectToDatabase() {
-    if (cachedClient) {
-        return cachedClient;
-    }
-    
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    cachedClient = client;
-    return client;
-}
-
 // Single connection promise with optimized settings
 // Single connection promise
 let clientPromise;
