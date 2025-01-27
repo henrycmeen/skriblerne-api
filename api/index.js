@@ -16,39 +16,34 @@ async function connectToDatabase() {
                     version: ServerApiVersion.v1,
                     strict: true,
                     deprecationErrors: true,
-                }
+                },
+                connectTimeoutMS: 10000,
+                socketTimeoutMS: 10000
             });
             clientPromise = client.connect();
         }
         const client = await clientPromise;
+        await client.db().command({ ping: 1 }); // Test connection
         console.log('MongoDB connection successful');
         return client;
     } catch (error) {
-        console.error('MongoDB connection error:', {
-            name: error.name,
-            message: error.message,
-            code: error.code,
-            connectionPhase: clientPromise ? 'established' : 'initial'
-        });
-        clientPromise = null; // Reset on error
+        console.error('MongoDB connection error:', error);
+        clientPromise = null;
         throw error;
     }
 }
 
+// Remove duplicate CORS setup and optimize connection handling
 export default async function handler(req, res) {
-    // Set a longer timeout for the response
-    res.setTimeout(30000); // 30 seconds
-
     // Early return for favicon requests
     if (req.url.includes('favicon')) {
         return res.status(204).end();
     }
 
-    // Enable CORS - Updated with specific origin
+    // Single CORS setup
     res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
@@ -61,18 +56,9 @@ export default async function handler(req, res) {
     });
     
     try {
-        // Enable CORS
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-        if (req.method === 'OPTIONS') {
-            return res.status(200).end();
-        }
-
         const path = req.url.split('?')[0];
 
-        // Handle non-database routes first
+        // Non-DB routes first for quick response
         if (path === '/' || path === '') {
             return res.json({ status: 'API is running' });
         }
@@ -81,7 +67,7 @@ export default async function handler(req, res) {
             return res.json({ status: 'ok' });
         }
 
-        // Database operations
+        // Database operations with optimized connection
         const client = await connectToDatabase();
         const db = client.db('test');
         const collection = db.collection('words');
