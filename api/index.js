@@ -1,6 +1,5 @@
 import express from 'express';
 import { MongoClient } from 'mongodb';
-import cors from 'cors';
 
 // Single connection promise
 let clientPromise;
@@ -33,6 +32,17 @@ export default async function handler(req, res) {
     // Early return for favicon requests
     if (req.url.includes('favicon')) {
         return res.status(204).end();
+    }
+
+    // Enable CORS - Updated headers
+    res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
     }
 
     console.log('Request received:', {
