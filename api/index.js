@@ -1,3 +1,4 @@
+// Remove unnecessary imports
 import { MongoClient } from 'mongodb';
 
 // Global cached connection
