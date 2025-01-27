@@ -59,14 +59,10 @@ async function connectToDatabase() {
 export default async function handler(req, res) {
     console.log('Request received:', {
         method: req.method,
-        path: req.url,
-        headers: req.headers
+        path: req.url
     });
     
     try {
-        // Add debug logging
-        console.log('Request path:', req.url);
-        
         // Enable CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
