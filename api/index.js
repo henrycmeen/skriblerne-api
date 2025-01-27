@@ -2,6 +2,7 @@ import express from 'express';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
 // Remove express import as it's not needed for Vercel serverless functions
+// Remove duplicate imports and keep only what we need
 import { MongoClient } from 'mongodb';
 
 // Global cached connection
