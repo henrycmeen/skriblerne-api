@@ -50,7 +50,14 @@ export default async function handler(req, res) {
         if (path === '/api/word/today') {
             const today = new Date().toISOString().split('T')[0];
             console.log('Searching for date:', today);
-            const word = await collection.findOne({ date: today });
+            
+            // Add more detailed logging
+            const allWords = await collection.find({}).toArray();
+            console.log('All available dates:', allWords.map(w => w.date));
+            
+            const word = await collection.findOne({ date: "2025-01-27" }); // Hardcode to test
+            console.log('Found word:', word);
+            
             return res.json(word || { word: 'Ingen ord i dag' });
         }
         
