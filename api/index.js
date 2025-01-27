@@ -21,7 +21,12 @@ async function connectToDatabase() {
             maxPoolSize: 1,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 5000,
-            connectTimeoutMS: 5000
+            connectTimeoutMS: 5000,
+            ssl: true,
+            tls: true,
+            tlsCAFile: undefined, // Let MongoDB driver handle the CA
+            retryWrites: true,
+            useNewUrlParser: true
         });
 
         // Store the database promise instead of the client

@@ -11,5 +11,9 @@
       "src": "/api/(.*)",
       "dest": "/api/index.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "NODE_TLS_REJECT_UNAUTHORIZED": "1"
+  }
 }
