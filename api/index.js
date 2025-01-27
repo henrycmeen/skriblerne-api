@@ -28,7 +28,6 @@ async function connectToDatabase() {
             useUnifiedTopology: true
         });
 
-        // Store the database promise instead of the client
         dbPromise = client.connect()
             .then(() => {
                 console.log('[DEBUG] Connected to MongoDB');
@@ -44,9 +43,7 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
-    // Remove timeout as Vercel handles this
     try {
-        // CORS headers first
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -56,24 +53,20 @@ export default async function handler(req, res) {
         }
 
         const path = req.url.split('?')[0];
-        console.log('[DEBUG] Processing request for path:', path);
+        console.log('[DEBUG] Request path:', path);
 
-        // Quick health checks
         if (path === '/health' || path === '/' || path === '') {
             return res.json({ status: 'ok' });
         }
 
-        // Database operations
         const db = await connectToDatabase();
         const collection = db.collection('words');
-    
+
         switch (path) {
+            case '/word/today':
             case '/api/word/today':
                 if (req.method === 'GET') {
-                    console.time('word-fetch');
                     const today = new Date().toISOString().split('T')[0];
-                    console.log('[DEBUG] Querying for date:', today);
-                    
                     const word = await collection.findOne(
                         { date: today },
                         { 
@@ -81,21 +74,20 @@ export default async function handler(req, res) {
                             projection: { _id: 0, word: 1, date: 1 }
                         }
                     );
-                    console.timeEnd('word-fetch');
-                    
                     return res.json(word || { word: 'Ingen ord i dag' });
                 }
                 break;
-    
+
+            case '/word/random':
             case '/api/word/random':
                 if (req.method === 'GET') {
                     const words = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
                     return res.json(words[0] || { word: 'Ingen ord funnet' });
                 }
                 break;
-    
+
             default:
-                return res.status(404).json({ error: 'Not found' });
+                return res.status(404).json({ error: 'Not found', path: path });
         }
     } catch (error) {
         console.error('[DEBUG] Request error:', error);
