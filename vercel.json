@@ -5,10 +5,5 @@
       "src": "/(.*)",
       "dest": "/api/index.js"
     }
-  ],
-  "env": {
-    "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-    "MONGODB_TLS_ALLOW_INVALID_CERTIFICATES": "true",
-    "NODE_OPTIONS": "--tls-min-v1.2"
-  }
+  ]
 }

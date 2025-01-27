@@ -10,29 +10,13 @@ async function connectToDatabase() {
         return cachedDb;
     }
 
-    if (!cachedClient) {
-        cachedClient = new MongoClient(process.env.MONGODB_URI, {
-            maxPoolSize: 1,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 5000,
-            ssl: true,
-            tls: true,
-            tlsInsecure: true
-        });
-    }
-
     try {
-        await cachedClient.connect();
-        cachedDb = cachedClient.db('test');
-        
-        // Verify connection
-        await cachedDb.command({ ping: 1 });
+        const client = await MongoClient.connect(process.env.MONGODB_URI);
+        cachedDb = client.db('test');
         console.log('Connected to MongoDB');
-        
         return cachedDb;
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        cachedClient = null;
         cachedDb = null;
         throw error;
     }
