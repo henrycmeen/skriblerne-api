@@ -24,6 +24,7 @@ async function connectToDatabase() {
 }
 
 // Single connection promise with optimized settings
+// Single connection promise
 let clientPromise;
 
 async function connectToDatabase() {
