@@ -24,9 +24,9 @@ async function connectToDatabase() {
 
 export default async function handler(req, res) {
     try {
-        // Set CORS headers first
+        // Update CORS headers to include PUT
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
-        res.setHeader('Access-Control-Allow-Methods', 'GET');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
         if (req.method === 'OPTIONS') {
@@ -40,6 +40,34 @@ export default async function handler(req, res) {
         const db = await connectToDatabase();
         const collection = db.collection('words');
 
+        // Add new word
+        if (path === '/api/words' && req.method === 'POST') {
+            const { word, date } = req.body;
+            if (!word || !date) {
+                return res.status(400).json({ error: 'Word and date are required' });
+            }
+            const result = await collection.updateOne(
+                { date },
+                { $set: { word: word.toUpperCase(), date } },
+                { upsert: true }
+            );
+            return res.json({ success: true, result });
+        }
+
+        // Update existing word
+        if (path.startsWith('/api/words/') && req.method === 'PUT') {
+            const date = path.split('/').pop();
+            const { word } = req.body;
+            if (!word) {
+                return res.status(400).json({ error: 'Word is required' });
+            }
+            const result = await collection.updateOne(
+                { date },
+                { $set: { word: word.toUpperCase() } }
+            );
+            return res.json({ success: true, result });
+        }
+
         // List all words
         if (path === '/api/words') {
             const words = await collection.find({}).toArray();
@@ -51,12 +79,24 @@ export default async function handler(req, res) {
             const today = new Date().toISOString().split('T')[0];
             console.log('Searching for date:', today);
             
-            // Match date by starting with the date string
-            const word = await collection.findOne({
-                date: new RegExp('^' + today)
-            });
-            console.log('Found word:', word);
+            // First try exact date string match
+            let word = await collection.findOne({ date: today });
             
+            // If not found, try with ISODate format
+            if (!word) {
+                const startOfDay = new Date(today);
+                const endOfDay = new Date(today);
+                endOfDay.setHours(23, 59, 59, 999);
+                
+                word = await collection.findOne({
+                    date: {
+                        $gte: startOfDay,
+                        $lte: endOfDay
+                    }
+                });
+            }
+            
+            console.log('Found word:', word);
             return res.json(word || { word: 'Ingen ord i dag' });
         }
         
