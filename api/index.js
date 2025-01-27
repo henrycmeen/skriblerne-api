@@ -54,6 +54,23 @@ export default async function handler(req, res) {
             return res.json({ success: true, result });
         }
 
+        // Add word endpoint
+        if (path === '/api/word/add' && req.method === 'POST') {
+            const { word, date } = req.body;
+            if (!word || !date) {
+                return res.status(400).json({ error: 'Word and date are required' });
+            }
+            const result = await collection.updateOne(
+                { date },
+                { $set: { 
+                    word: word.toUpperCase(), 
+                    date: new Date(date).toISOString()
+                }},
+                { upsert: true }
+            );
+            return res.json({ success: true, result });
+        }
+
         // Update existing word
         if (path.startsWith('/api/words/') && req.method === 'PUT') {
             const date = path.split('/').pop();
