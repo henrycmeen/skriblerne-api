@@ -1,5 +1,5 @@
 import express from 'express';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ServerApiVersion } from 'mongodb';
 
 // Single connection promise
 let clientPromise;
@@ -12,25 +12,25 @@ async function connectToDatabase() {
                 throw new Error('MONGODB_URI is not defined');
             }
             const client = new MongoClient(process.env.MONGODB_URI, {
-                serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 5000,
-                connectTimeoutMS: 5000
+                serverApi: {
+                    version: ServerApiVersion.v1,
+                    strict: true,
+                    deprecationErrors: true,
+                }
             });
-            clientPromise = client.connect().catch(err => {
-                console.error('Failed to connect:', err);
-                clientPromise = null;
-                throw err;
-            });
+            clientPromise = client.connect();
         }
         const client = await clientPromise;
         console.log('MongoDB connection successful');
         return client;
     } catch (error) {
-        console.error('Detailed MongoDB connection error:', {
+        console.error('MongoDB connection error:', {
             name: error.name,
             message: error.message,
-            stack: error.stack
+            code: error.code,
+            connectionPhase: clientPromise ? 'established' : 'initial'
         });
+        clientPromise = null; // Reset on error
         throw error;
     }
 }
