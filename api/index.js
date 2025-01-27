@@ -17,7 +17,6 @@ async function connectToDatabase() {
                 serverSelectionTimeoutMS: 10000,
                 socketTimeoutMS: 10000,
                 connectTimeoutMS: 10000,
-                directConnection: true,
                 retryWrites: true,
                 w: 'majority'
             });
@@ -43,6 +42,11 @@ export default async function handler(req, res) {
     });
     
     try {
+        // Handle favicon requests
+        if (req.url.includes('favicon')) {
+            return res.status(204).end(); // No content response for favicon
+        }
+
         // Enable CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
