@@ -13,6 +13,10 @@ async function connectToDatabase() {
         return cachedDb;
     }
 
+    if (!process.env.MONGODB_URI) {
+        throw new Error('Please define MONGODB_URI environment variable');
+    }
+
     const client = await MongoClient.connect(process.env.MONGODB_URI);
     cachedDb = client.db('test');
     return cachedDb;
