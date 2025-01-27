@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node api/index.js",
-    "vercel-build": "echo 'Build step completed'"
+    "vercel-build": "mkdir -p .vercel/output && cp -r api .vercel/output/"
   },
   "dependencies": {
     "mongodb": "^6.3.0"
