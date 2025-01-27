@@ -41,17 +41,49 @@ export default async function handler(req, res) {
         const collection = db.collection('words');
 
         // Add new word
+        // Single POST endpoint for adding words
         if (path === '/api/words' && req.method === 'POST') {
             const { word, date } = req.body;
             if (!word || !date) {
                 return res.status(400).json({ error: 'Word and date are required' });
             }
-            const result = await collection.updateOne(
-                { date },
-                { $set: { word: word.toUpperCase(), date } },
-                { upsert: true }
-            );
-            return res.json({ success: true, result });
+            try {
+                const result = await collection.updateOne(
+                    { date },
+                    { $set: { 
+                        word: word.toUpperCase(),
+                        date: date
+                    }},
+                    { upsert: true }
+                );
+                return res.json({ success: true, result });
+            } catch (error) {
+                console.error('Database error:', error);
+                return res.status(500).json({ error: 'Database error' });
+            }
+        }
+
+        // Add new word endpoint
+        if (path === '/api/words' && req.method === 'POST') {
+            const { word, date } = req.body;
+            if (!word || !date) {
+                return res.status(400).json({ error: 'Word and date are required' });
+            }
+            
+            try {
+                const result = await collection.updateOne(
+                    { date },
+                    { $set: { 
+                        word: word.toUpperCase(),
+                        date: date
+                    }},
+                    { upsert: true }
+                );
+                return res.json({ success: true, result });
+            } catch (error) {
+                console.error('Database error:', error);
+                return res.status(500).json({ error: 'Database error' });
+            }
         }
 
         // Add new word endpoint
