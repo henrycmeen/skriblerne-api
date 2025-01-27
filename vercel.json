@@ -15,7 +15,7 @@
   "env": {
     "NODE_ENV": "production",
     "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-    "MONGODB_TLS_ALLOW_INVALID_CERTIFICATES": "true",
-    "NODE_OPTIONS": "--tls-min-v1.2"
+    "NODE_OPTIONS": "--tls-min-v1.2 --no-warnings --tls-cipher-list='TLS_AES_128_GCM_SHA256'",
+    "MONGODB_TLS_ALLOW_INVALID_CERTIFICATES": "true"
   }
 }

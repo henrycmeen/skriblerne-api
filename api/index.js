@@ -11,32 +11,45 @@ async function connectToDatabase() {
             return dbPromise;
         }
 
-        console.log('[DEBUG] Creating new MongoDB client...');
-        const client = new MongoClient(process.env.MONGODB_URI, {
+        const uri = process.env.MONGODB_URI;
+        console.log('[DEBUG] Connecting with URI pattern:', 
+            uri?.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
+
+        const client = new MongoClient(uri, {
             serverApi: {
                 version: ServerApiVersion.v1,
-                strict: true,
+                strict: false,
                 deprecationErrors: true,
             },
             maxPoolSize: 1,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 5000,
-            connectTimeoutMS: 5000,
-            ssl: true,
+            minPoolSize: 1,
+            retryWrites: true,
+            retryReads: true,
             tls: true,
             tlsAllowInvalidCertificates: true,
-            useUnifiedTopology: true
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 30000, // Increased timeout
+            heartbeatFrequencyMS: 2000
         });
 
+        // Test connection before caching
         dbPromise = client.connect()
-            .then(() => {
-                console.log('[DEBUG] Connected to MongoDB');
-                return client.db('test');
+            .then(async (connectedClient) => {
+                console.log('[DEBUG] Initial connection successful');
+                const db = connectedClient.db('test');
+                await db.command({ ping: 1 });
+                console.log('[DEBUG] Database ping successful');
+                return db;
             });
 
         return dbPromise;
     } catch (error) {
-        console.error('[DEBUG] Connection error:', error);
+        console.error('[DEBUG] Connection error:', {
+            name: error.name,
+            message: error.message,
+            code: error.code
+        });
         dbPromise = null;
         throw error;
     }
