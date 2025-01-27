@@ -34,9 +34,10 @@ export default async function handler(req, res) {
         }
 
         const path = req.url.split('?')[0];
-        
+        console.log('Incoming request path:', path);
+
         // Health check without DB
-        if (path === '/health') {
+        if (path === '/api/health') {
             return res.json({ status: 'ok' });
         }
 
@@ -44,11 +45,10 @@ export default async function handler(req, res) {
         const db = await connectToDatabase();
         const collection = db.collection('words');
 
-        if (path === '/word/today') {
+        if (path === '/api/word/today') {  // Updated path
             const today = new Date().toISOString().split('T')[0];
-            console.log('Fetching word for date:', today);
+            console.log('Searching for date:', today);
             const word = await collection.findOne({ date: today });
-            console.log('Found word:', word);
             return res.json(word || { word: 'Ingen ord i dag' });
         }
         
