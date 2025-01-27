@@ -27,19 +27,33 @@ async function connectToDatabase() {
 let clientPromise;
 
 async function connectToDatabase() {
-    if (!clientPromise) {
-        const client = new MongoClient(process.env.MONGODB_URI, {
-            maxPoolSize: 1,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 5000
-        });
-        clientPromise = client.connect();
+    try {
+        if (!clientPromise) {
+            console.log('Initializing new MongoDB connection');
+            if (!process.env.MONGODB_URI) {
+                throw new Error('MONGODB_URI is not defined');
+            }
+            const client = new MongoClient(process.env.MONGODB_URI, {
+                maxPoolSize: 1,
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 5000
+            });
+            clientPromise = client.connect();
+        }
+        const client = await clientPromise;
+        console.log('MongoDB connection successful');
+        return client;
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        throw error;
     }
-    return clientPromise;
 }
 
 export default async function handler(req, res) {
     try {
+        // Add debug logging
+        console.log('Request path:', req.url);
+        
         // Enable CORS
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
