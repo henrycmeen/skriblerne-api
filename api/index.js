@@ -7,49 +7,35 @@ let dbPromise = null;
 async function connectToDatabase() {
     try {
         if (dbPromise) {
-            console.log('[DEBUG] Using cached connection');
             return dbPromise;
         }
 
-        const uri = process.env.MONGODB_URI;
-        console.log('[DEBUG] Connecting with URI pattern:', 
-            uri?.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
-
-        const client = new MongoClient(uri, {
-            serverApi: {
-                version: ServerApiVersion.v1,
-                strict: false,
-                deprecationErrors: true,
-            },
-            maxPoolSize: 1,
-            minPoolSize: 1,
-            retryWrites: true,
-            retryReads: true,
-            tls: true,
-            tlsAllowInvalidCertificates: true,
+        console.log('[DEBUG] Creating new MongoDB client...');
+        const client = new MongoClient(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 30000, // Increased timeout
-            heartbeatFrequencyMS: 2000
+            tls: true,
+            tlsAllowInvalidCertificates: true,
+            serverSelectionTimeoutMS: 5000,  // Lower timeout
+            connectTimeoutMS: 5000,          // Lower timeout
+            socketTimeoutMS: 5000            // Lower timeout
         });
 
-        // Test connection before caching
-        dbPromise = client.connect()
-            .then(async (connectedClient) => {
-                console.log('[DEBUG] Initial connection successful');
-                const db = connectedClient.db('test');
-                await db.command({ ping: 1 });
-                console.log('[DEBUG] Database ping successful');
-                return db;
-            });
+        // Add timeout to the promise
+        dbPromise = Promise.race([
+            client.connect()
+                .then(() => {
+                    console.log('[DEBUG] Connected to MongoDB');
+                    return client.db('test');
+                }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Connection timeout')), 5000)
+            )
+        ]);
 
         return dbPromise;
     } catch (error) {
-        console.error('[DEBUG] Connection error:', {
-            name: error.name,
-            message: error.message,
-            code: error.code
-        });
+        console.error('[DEBUG] Connection error:', error);
         dbPromise = null;
         throw error;
     }
