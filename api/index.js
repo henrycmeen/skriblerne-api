@@ -29,20 +29,23 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
+    // Set a longer timeout for the response
+    res.setTimeout(30000); // 30 seconds
+
     // Early return for favicon requests
     if (req.url.includes('favicon')) {
         return res.status(204).end();
     }
 
-    // Enable CORS - Updated headers
+    // Enable CORS - Updated with specific origin
     res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
 
-    // Handle preflight requests
+    // Handle preflight
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        return res.status(204).end();
     }
 
     console.log('Request received:', {
