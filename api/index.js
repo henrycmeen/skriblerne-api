@@ -54,11 +54,11 @@ export default async function handler(req, res) {
             return res.json({ success: true, result });
         }
 
-        // Add word endpoint
+        // Add new word endpoint
         if (path === '/api/word/add' && req.method === 'POST') {
             const { word, date } = req.body;
-            if (!word || !date) {
-                return res.status(400).json({ error: 'Word and date are required' });
+            if (!word) {
+                return res.status(400).json({ error: 'Word is required' });
             }
             const result = await collection.updateOne(
                 { date },
