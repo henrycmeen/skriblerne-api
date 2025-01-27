@@ -18,7 +18,10 @@ async function connectToDatabase() {
                 socketTimeoutMS: 5000,
                 ssl: true,
                 tls: true,
-                tlsAllowInvalidCertificates: true // For testing only
+                tlsCAFile: undefined,
+                tlsAllowInvalidHostnames: true,
+                useNewUrlParser: true,
+                useUnifiedTopology: true
             });
             clientPromise = client.connect();
         }
