@@ -3,19 +3,30 @@ import { MongoClient } from 'mongodb';
 
 // Global cached connection
 let cachedDb = null;
+let client = null;
 
 async function connectToDatabase() {
-    if (cachedDb) {
+    try {
+        if (cachedDb) {
+            return cachedDb;
+        }
+
+        client = new MongoClient(process.env.MONGODB_URI);
+        await client.connect();
+        cachedDb = client.db('test');
+        
+        // Test connection
+        await cachedDb.command({ ping: 1 });
         return cachedDb;
+    } catch (error) {
+        console.error('Connection error:', error);
+        cachedDb = null;
+        if (client) {
+            await client.close();
+            client = null;
+        }
+        throw error;
     }
-
-    if (!process.env.MONGODB_URI) {
-        throw new Error('Please define MONGODB_URI environment variable');
-    }
-
-    const client = await MongoClient.connect(process.env.MONGODB_URI);
-    cachedDb = client.db('test');
-    return cachedDb;
 }
 
 export default async function handler(req, res) {
