@@ -1,39 +1,52 @@
 import express from 'express';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-// Single connection promise
-let clientPromise;
+// Global cache variables
+let cachedClient = null;
+let cachedDb = null;
 
 async function connectToDatabase() {
     try {
-        if (!clientPromise) {
-            console.log('Creating new MongoDB client...');
-            if (!process.env.MONGODB_URI) {
-                throw new Error('MONGODB_URI is not defined');
-            }
-            const client = new MongoClient(process.env.MONGODB_URI, {
-                serverApi: {
-                    version: ServerApiVersion.v1,
-                    strict: true,
-                    deprecationErrors: true,
-                },
-                connectTimeoutMS: 10000,
-                socketTimeoutMS: 10000
-            });
-            clientPromise = client.connect();
+        // Return cached connection if available
+        if (cachedClient && cachedDb) {
+            console.log('Using cached database connection');
+            return { client: cachedClient, db: cachedDb };
         }
-        const client = await clientPromise;
-        await client.db().command({ ping: 1 }); // Test connection
+
+        console.log('Creating new MongoDB client...');
+        if (!process.env.MONGODB_URI) {
+            throw new Error('MONGODB_URI is not defined');
+        }
+
+        const client = new MongoClient(process.env.MONGODB_URI, {
+            serverApi: {
+                version: ServerApiVersion.v1,
+                strict: true,
+                deprecationErrors: true,
+            },
+            maxPoolSize: 10
+        });
+
+        await client.connect();
+        const db = client.db('test');
+        
+        // Test connection
+        await db.command({ ping: 1 });
         console.log('MongoDB connection successful');
-        return client;
+
+        // Cache the connection
+        cachedClient = client;
+        cachedDb = db;
+
+        return { client: cachedClient, db: cachedDb };
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        clientPromise = null;
+        cachedClient = null;
+        cachedDb = null;
         throw error;
     }
 }
 
-// Remove duplicate CORS setup and optimize connection handling
 export default async function handler(req, res) {
     // Early return for favicon requests
     if (req.url.includes('favicon')) {
