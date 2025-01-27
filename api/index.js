@@ -1,61 +1,68 @@
 // Remove unnecessary imports
 import { MongoClient } from 'mongodb';
 
-// Global cached connection
+// Global connection cache
+let cachedClient = null;
 let cachedDb = null;
-let client = null;
 
 async function connectToDatabase() {
-    try {
-        if (cachedDb) {
-            return cachedDb;
-        }
+    if (cachedDb) {
+        return cachedDb;
+    }
 
-        client = new MongoClient(process.env.MONGODB_URI);
-        await client.connect();
-        cachedDb = client.db('test');
+    if (!cachedClient) {
+        cachedClient = new MongoClient(process.env.MONGODB_URI, {
+            maxPoolSize: 1, // Limit connections for serverless
+            serverSelectionTimeoutMS: 5000, // 5 seconds
+            socketTimeoutMS: 5000
+        });
+    }
+
+    try {
+        await cachedClient.connect();
+        cachedDb = cachedClient.db('test');
         
-        // Test connection
+        // Verify connection
         await cachedDb.command({ ping: 1 });
+        console.log('Connected to MongoDB');
+        
         return cachedDb;
     } catch (error) {
-        console.error('Connection error:', error);
+        console.error('MongoDB connection error:', error);
+        // Reset cache on error
+        cachedClient = null;
         cachedDb = null;
-        if (client) {
-            await client.close();
-            client = null;
-        }
         throw error;
     }
 }
 
 export default async function handler(req, res) {
-    // Handle CORS preflight request
-    if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        return res.status(204).end();
-    }
-
     try {
+        // Set CORS headers first
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
         res.setHeader('Access-Control-Allow-Methods', 'GET');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        
+
+        if (req.method === 'OPTIONS') {
+            return res.status(204).end();
+        }
+
         const path = req.url.split('?')[0];
         
-        // Quick health check without DB connection
+        // Health check without DB
         if (path === '/health') {
             return res.json({ status: 'ok' });
         }
-        
+
+        // Connect to DB with better error handling
         const db = await connectToDatabase();
         const collection = db.collection('words');
 
         if (path === '/word/today') {
             const today = new Date().toISOString().split('T')[0];
+            console.log('Fetching word for date:', today);
             const word = await collection.findOne({ date: today });
+            console.log('Found word:', word);
             return res.json(word || { word: 'Ingen ord i dag' });
         }
         
@@ -66,7 +73,10 @@ export default async function handler(req, res) {
 
         return res.status(404).json({ error: 'Not found' });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+        console.error('Request error:', error);
+        return res.status(500).json({ 
+            error: 'Server error',
+            message: error.message
+        });
     }
 }
