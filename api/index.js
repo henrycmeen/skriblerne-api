@@ -28,11 +28,13 @@ let clientPromise;
 
 async function connectToDatabase() {
     try {
+        console.log('Starting database connection...');
         if (!clientPromise) {
-            console.log('Initializing new MongoDB connection');
             if (!process.env.MONGODB_URI) {
+                console.error('MONGODB_URI environment variable is missing');
                 throw new Error('MONGODB_URI is not defined');
             }
+            console.log('Creating new MongoDB client...');
             const client = new MongoClient(process.env.MONGODB_URI, {
                 maxPoolSize: 1,
                 serverSelectionTimeoutMS: 5000,
@@ -44,12 +46,22 @@ async function connectToDatabase() {
         console.log('MongoDB connection successful');
         return client;
     } catch (error) {
-        console.error('MongoDB connection error:', error);
+        console.error('Detailed MongoDB connection error:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         throw error;
     }
 }
 
 export default async function handler(req, res) {
+    console.log('Request received:', {
+        method: req.method,
+        path: req.url,
+        headers: req.headers
+    });
+    
     try {
         // Add debug logging
         console.log('Request path:', req.url);
