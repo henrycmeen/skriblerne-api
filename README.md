@@ -1,6 +1,6 @@
 # Skriblerne API
 
-Backend API for the Skriblerne application, providing word management and retrieval services.
+Backend API for the [Skriblerne application](https://github.com/henrycmeen/Skriblerne), providing word management and retrieval services.
 
 ## Overview
 This is a serverless API built with Express.js and MongoDB, deployed on Vercel.
