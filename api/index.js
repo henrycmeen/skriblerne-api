@@ -24,12 +24,17 @@ async function connectToDatabase() {
 
 export default async function handler(req, res) {
     try {
-        // CORS headers
-        // Update CORS headers
+        // Update CORS and add Permissions-Policy headers
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        
+        res.setHeader('Permissions-Policy', 
+            'interest-cohort=(), ' +
+            'private-state-token-redemption=(), ' +
+            'private-state-token-issuance=(), ' +
+            'browsing-topics=()'
+        );
+
         // Handle OPTIONS request explicitly
         if (req.method === 'OPTIONS') {
             res.status(200).end();
