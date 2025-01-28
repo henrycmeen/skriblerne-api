@@ -21,3 +21,30 @@ This is a serverless API built with Express.js and MongoDB, deployed on Vercel.
 1. Clone the repository
 ```bash
 git clone https://github.com/henrycmeen/skriblerne-api.git
+2. Install dependencies
+npm install
+3. Create .env file with:
+MONGODB_URI=your_mongodb_connection_string
+PORT=3001
+
+skriblerne-api/
+├── api/
+│   └── index.js    # Main API logic
+├── vercel.json     # Vercel configuration
+└── package.json    # Dependencies and scripts
+
+
+After creating these files, commit them to their respective repositories:
+
+```bash
+# For main project
+cd /Users/henmee/Documents/GitHub/Skriblerne
+git add README.md
+git commit -m "Add README documentation"
+git push origin main
+
+# For API project
+cd /Users/henmee/Documents/GitHub/skriblerne-api
+git add README.md
+git commit -m "Add README documentation"
+git push origin main
