@@ -25,10 +25,16 @@ async function connectToDatabase() {
 export default async function handler(req, res) {
     try {
         // CORS headers
+        // Update CORS headers
         res.setHeader('Access-Control-Allow-Origin', 'https://henrycmeen.github.io');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+        
+        // Handle OPTIONS request explicitly
+        if (req.method === 'OPTIONS') {
+            res.status(200).end();
+            return;
+        }
         const path = req.url.split('?')[0];
         const db = await connectToDatabase();
         const collection = db.collection('words');
