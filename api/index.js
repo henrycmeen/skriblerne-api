@@ -54,33 +54,31 @@ export default async function handler(req, res) {
             
             // POST - Add new word
             if (req.method === 'POST') {
-                const { word, date } = req.body;
-                if (!word || !date) {
-                    return res.status(400).json({ error: 'Word and date are required' });
+                const { word } = req.body;
+                if (!word) {
+                    return res.status(400).json({ error: 'Word is required' });
                 }
                 
-                // Validate date format and ensure it's a valid date
-                const dateObj = new Date(date);
-                if (isNaN(dateObj.getTime())) {
-                    return res.status(400).json({ error: 'Invalid date format' });
-                }
                 try {
-                    // Check if the date already has a word assigned
-                    const existingWord = await collection.findOne({ date });
-                    if (existingWord) {
-                        return res.status(400).json({ error: 'A word is already assigned to this date' });
-                    }
-
                     // Check if the word already exists
                     const duplicateWord = await collection.findOne({ word: word.toUpperCase() });
                     if (duplicateWord) {
                         return res.status(400).json({ error: 'This word already exists in the database' });
                     }
 
-                    // Insert the new word
+                    // Find the latest date in the database
+                    const latestWord = await collection.findOne({}, { sort: { date: -1 } });
+                    
+                    // Set the next available date
+                    const nextDate = latestWord 
+                        ? new Date(new Date(latestWord.date).getTime() + 24 * 60 * 60 * 1000)
+                        : new Date();
+                    nextDate.setHours(0, 0, 0, 0);
+
+                    // Insert the new word with the next available date
                     const result = await collection.insertOne({
                         word: word.toUpperCase(),
-                        date
+                        date: nextDate.toISOString().split('T')[0]
                     });
                     return res.json({ success: true, result });
                 } catch (error) {
